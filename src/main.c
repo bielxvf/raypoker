@@ -39,7 +39,8 @@ bool GuiButtonCentered(float y, char* text, float font_size)
     return GuiButton(rec_centered, text);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     UNUSED(argc);
     UNUSED(argv);
 
