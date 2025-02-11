@@ -18,6 +18,7 @@ typedef enum {
     MAIN_MENU = 0,
     CREATE_DB,
     START_SESSION,
+    SESSION,
 } Game_Screen;
 
 typedef struct {
@@ -84,7 +85,7 @@ int main()
     }
     DS config_dir = DS_from_cstr("");
     DS_push_back_cstr(&config_dir, home);
-    DS_push_back_cstr(&config_dir, "/.config/"PROGRAM);
+    DS_push_back_cstr(&config_dir, "/.config/"PROGRAM"/");
 
     DIR* dir = opendir(DS_to_cstr(&config_dir));
     if (dir == NULL) {
@@ -105,19 +106,23 @@ int main()
         if (entries.count >= entries.capacity) {
             entries.capacity *= 2;
             DS* new_entries_items = realloc(entries.items, sizeof(entries.items[0]) * entries.capacity);
-            for (size_t i = 0; i < entries.count; i++) {
-                DS_free(&entries.items[i]);
-            }
-            free(entries.items);
             entries.items = new_entries_items;
         }
         entries.items[entries.count++] = DS_from_cstr(entry->d_name);
     }
 
-
     Button btn_create_db = Button_init(font, "Create Database", (Vector2){ .x = SCREEN_WIDTH/2.0, .y = SCREEN_HEIGHT/2.0 }, RED, BLACK);
     Button btn_start_session = Button_init(font, "Start Session", (Vector2){ .x = SCREEN_WIDTH/2.0, .y = SCREEN_HEIGHT/2.0 + 15.0 * 3 }, RED, BLACK);
     Button btn_main_menu = Button_init(font, "Main Menu", (Vector2){ .x = SCREEN_WIDTH / 20.0, .y = SCREEN_WIDTH / 40.0 }, RED, BLACK);
+
+    Button* buttons_dbs_items = malloc(sizeof(buttons_dbs_items[0]) * entries.count);
+    size_t buttons_dbs_count = entries.count;
+    size_t buttons_dbs_capacity = entries.count;
+    for (size_t i = 0; i < buttons_dbs_count; i++) {
+        buttons_dbs_items[i] = Button_init(font, DS_to_cstr(&entries.items[i]), (Vector2){ .x = SCREEN_WIDTH/2.0, .y = 100.0 + 50.0 * (float) i }, RED, BLACK);
+    }
+
+    DS db_full_path = DS_from_ds(&config_dir);
 
     while (!WindowShouldClose()) {
         {
@@ -143,7 +148,23 @@ int main()
                     if (is_mouse_on_rec(btn_main_menu.rec)) {
                         current_screen = MAIN_MENU;
                     }
+                    for (size_t i = 0; i < buttons_dbs_count; i++) {
+                        if (is_mouse_on_rec(buttons_dbs_items[i].rec)) {
+                            DS_push_back_cstr(&db_full_path, DS_to_cstr(&entries.items[i]));
+                            current_screen = SESSION;
+                            break;
+                        }
+                    }
                 }
+            } break;
+            case SESSION: {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    if (is_mouse_on_rec(btn_main_menu.rec)) {
+                        current_screen = MAIN_MENU;
+                    }
+                }
+
+                printf("Full path: %s\n", DS_to_cstr(&db_full_path));
             } break;
             }
         }
@@ -159,6 +180,12 @@ int main()
                 Button_draw(font, btn_main_menu);
             } break;
             case START_SESSION: {
+                Button_draw(font, btn_main_menu);
+                for (size_t i = 0; i < entries.count; i++) {
+                    Button_draw(font, buttons_dbs_items[i]);
+                }
+            } break;
+            case SESSION: {
                 Button_draw(font, btn_main_menu);
             } break;
             }
